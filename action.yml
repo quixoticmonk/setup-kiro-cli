@@ -1,0 +1,58 @@
+name: Setup kiro-cli
+description: Install kiro-cli on a Linux runner and add it to PATH.
+author: quixoticmonk
+
+branding:
+  icon: terminal
+  color: purple
+
+inputs:
+  cli-version:
+    description: kiro-cli version to install (e.g. "2.0.1") or "latest".
+    required: false
+    default: latest
+
+outputs:
+  cli-version:
+    description: Installed kiro-cli version.
+    value: ${{ steps.install.outputs.cli-version }}
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      run: |
+        set -euo pipefail
+        VERSION="${{ inputs.cli-version }}"
+        [[ "$RUNNER_OS" == "Linux" ]] || { echo "::error::setup-kiro-cli supports Linux runners only (got $RUNNER_OS)"; exit 1; }
+
+        case "$(uname -m)" in
+          x86_64|amd64) ARCH=x86_64 ;;
+          aarch64|arm64) ARCH=aarch64 ;;
+          *) echo "::error::unsupported arch $(uname -m)"; exit 1 ;;
+        esac
+
+        GLIBC=$(ldd --version 2>&1 | head -1 | grep -oE '[0-9]+\.[0-9]+' | tail -1)
+        if awk -v v="$GLIBC" 'BEGIN{split(v,a,".");exit !(a[1]>2||(a[1]==2&&a[2]>=34))}'; then
+          SUFFIX="linux"
+        else
+          SUFFIX="linux-musl"
+        fi
+
+        URL="https://desktop-release.q.us-east-1.amazonaws.com/${VERSION}/kirocli-${ARCH}-${SUFFIX}.zip"
+        echo "Downloading $URL"
+        curl --proto '=https' --tlsv1.2 -fsSL "$URL" -o /tmp/kirocli.zip \
+          || { echo "::error::failed to download kiro-cli version '${VERSION}' (${ARCH}/${SUFFIX}) from ${URL}"; exit 1; }
+
+        unzip -q /tmp/kirocli.zip -d /tmp/kirocli-pkg
+        KIRO_CLI_SKIP_SETUP=1 /tmp/kirocli-pkg/kirocli/install.sh
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+        INSTALLED=$("$HOME/.local/bin/kiro-cli" --version | awk '{print $2}')
+        echo "cli-version=$INSTALLED" >> "$GITHUB_OUTPUT"
+        echo "Installed kiro-cli $INSTALLED"
+
+        if [[ "$VERSION" != "latest" && "$INSTALLED" != "$VERSION" ]]; then
+          echo "::warning::requested version '$VERSION' but installed '$INSTALLED'"
+        fi

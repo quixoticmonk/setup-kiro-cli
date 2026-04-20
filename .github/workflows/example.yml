@@ -1,0 +1,13 @@
+name: example-setup-kiro
+on:
+  workflow_dispatch:
+
+jobs:
+  chat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          cli-version: latest
+      - run: kiro-cli --version
