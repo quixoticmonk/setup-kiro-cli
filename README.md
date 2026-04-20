@@ -37,23 +37,3 @@ This action does not authenticate for you. For CI, set `KIRO_API_KEY` as a secre
 ## Version notes
 
 Versioned URLs follow `https://desktop-release.q.us-east-1.amazonaws.com/{version}/kirocli-{arch}-linux.zip`. Not every historical version is hosted; if the requested version 404s, the step fails with the URL so you can verify.
-
-## Publishing
-
-1. **Create the repo** at `github.com/quixoticmonk/setup-kiro-cli` (public). The repo name must match the `uses:` reference.
-2. **Push `action.yml` to the root.** The file must be at the repo root for GitHub to recognise it as an action.
-3. **Tag a release.**
-   ```bash
-   git tag -a v1.0.0 -m "Initial release"
-   git push origin v1.0.0
-   ```
-   Then create a GitHub Release from that tag (UI or `gh release create v1.0.0 --generate-notes`). When you create the release, check **"Publish this Action to the GitHub Marketplace"** and accept the terms. Marketplace requires a unique `name:` and a valid `branding:` block — both already set.
-4. **Add a moving major tag** so users can pin to `@v1`:
-   ```bash
-   git tag -f v1 v1.0.0
-   git push -f origin v1
-   ```
-   Update this tag on each non-breaking release. Users who pin to `@v1` get the latest 1.x automatically.
-5. **Subsequent releases:** tag `vX.Y.Z`, re-point `vX`, publish a new Release. Breaking changes → bump major and publish as `v2`.
-
-Users can consume the action before Marketplace listing — any public repo with an `action.yml` at root is usable via `uses: owner/repo@ref`. Marketplace only affects discoverability.
